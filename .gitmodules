@@ -1,0 +1,12 @@
+[submodule "bash_scripts/spectre-meltdown-checker"]
+	path = bash_scripts/spectre-meltdown-checker
+	url = https://github.com/speed47/spectre-meltdown-checker.git
+[submodule "c_code/pping"]
+	path = c_code/pping
+	url = https://github.com/t-lin/pping.git
+[submodule "c_code/rtt-mon"]
+	path = c_code/rtt-mon
+	url = https://github.com/t-lin/rtt-mon.git
+[submodule "c_code/pping-exporter"]
+	path = c_code/pping-exporter
+	url = https://github.com/t-lin/pping-exporter.git
