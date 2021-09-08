@@ -1,0 +1,37 @@
+# Commands used while making vid for NetSoft '20 presentation
+
+# Cut video to get before and after slide 23
+ffmpeg -i PS6-presenter-Marinova.mp4 -t 00:21:51 -c copy before23.mp4
+#ffmpeg -i PS6-presenter-Marinova.mp4 -t 00:21:51.500 -c copy before23.mp4 -ss 00:21:51.500 -c copy after23.mp4
+ffmpeg -i PS6-presenter-Marinova.mp4 -ss 00:21:52.5 -c copy after23.mp4
+
+# With screenshots from each state of slide 23, and the extracted audio, need to make a vid
+# Scale single frame images, each one is a different state of the slide
+ffmpeg -i frame1.jpg -vf scale=1080:720 newFrame1.jpg
+ffmpeg -i frame2.jpg -vf scale=1080:720 newFrame2.jpg
+ffmpeg -i frame3.jpg -vf scale=1080:720 newFrame3.jpg
+
+# Mix single frame images w/ audio to make a video
+# Mixes with full audio. Likely a way to mix with only a portion of the audio, but didn't have time...
+ffmpeg -loop 1 -i newFrame1.jpg -i media23.m4a -c:a copy -c:v libx264 -shortest slide23-frame1.mp4
+ffmpeg -loop 1 -i newFrame2.jpg -i media23.m4a -c:a copy -c:v libx264 -shortest slide23-frame2.mp4
+ffmpeg -loop 1 -i newFrame3.jpg -i media23.m4a -c:a copy -c:v libx264 -shortest slide23-frame3.mp4
+
+# Cut videos to get specific portions for when slide state changes
+ffmpeg -i slide23-frame1.mp4 -t 00:00:19.8 -c copy slide23-1.mp4
+ffmpeg -i slide23-frame2.mp4 -ss 00:00:19.8 -c copy -t 00:01:00.7 slide23-2.mp4
+ffmpeg -i slide23-frame3.mp4 -ss 00:01:20.1 -c copy slide23-3.mp4
+
+# Combine different states into one video for slide 23
+ffmpeg -i slide23-1.mp4 -i slide23-2.mp4 -i slide23-3.mp4 -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" slide23.mp4
+
+# Change video pixel format... (ended up not being useful here)
+ffmpeg -i slide23.mp4 -pix_fmt yuv420p -vf scale=1080x720,setdar=16:9,setsar=1:1 slide23-new.mp4
+
+# Re-encode videos to get them all to be the same format... something to do with SAR and DAR
+ffmpeg -i slide23.mp4 -vf scale=1080x720,setdar=16:9 slide23-new.mp4
+ffmpeg -i after23.mp4 -vf scale=1080x720,setdar=16:9 after23-new.mp4
+ffmpeg -i before23.mp4 -vf scale=1080x720,setdar=16:9 before23-new.mp4
+
+# Combine all vids together
+ffmpeg -i before23-new.mp4 -i slide23-new.mp4 -i after23-new.mp4 -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" full-presentation.mp4

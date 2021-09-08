@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Create OVS w/ default max rate of 30 Mbps
+sudo ovs-vsctl create qos type=linux-htb other_config:max-rate=30000000
+
+# Create queue w/ same max rate (30 Mbps) and priority 0
+# Queues w/ lower priority # will receive excess bw first
+sudo ovs-vsctl create queue other-config:max-rate=30000000 other-config:priority=0
+
+# Add queue to QoS definition w/ queue ID 0
+sudo ovs-vsctl set qos e23e00bf-f864-4fcc-a50d-0536281387e3 queues:0=17148ec8-79bf-4c5d-852b-662197b68923
+
+# Add QoS definition to specific port
+sudo ovs-vsctl set port p0ovs qos=e23e00bf-f864-4fcc-a50d-0536281387e3
+
+###############
+
+sudo ovs-vsctl set queue e273749a-8eaa-4575-aa3f-7b1e210016b3 other_config:max-rate=15000000
+sleep 3
+#sudo ip netns exec otherns iperf3 -c $TARG_IP -u -b20M -t 35 &
+sudo ip netns exec otherns iperf3 -c $TARG_IP -t 35 &
+sleep 10
+sudo ovs-vsctl set queue e273749a-8eaa-4575-aa3f-7b1e210016b3 other_config:max-rate=10000000
+sleep 10
+sudo ovs-vsctl set queue e273749a-8eaa-4575-aa3f-7b1e210016b3 other_config:max-rate=5000000
+
+
+##############
+
+#sudo ovs-ofctl add-flow br0 in_port=1,actions=enqueue:2:0
+
+#sudo ovs-ofctl del-flows br0 in_port=1
+
+sudo ovs-ofctl add-flow br0 priority=50000,in_port=1,tcp,actions=enqueue:2:1
+sudo ovs-ofctl add-flow br0 priority=50000,in_port=1,udp,actions=enqueue:2:0
+sudo ovs-ofctl add-flow br0 in_port=1,actions=enqueue:2:0
+sudo ovs-ofctl add-flow br0 in_port=2,actions=output:1

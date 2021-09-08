@@ -1,0 +1,34 @@
+# Universal delay
+sudo tc qdisc add dev s2-eth2 root netem delay 10ms
+sudo tc qdisc del dev s2-eth2 root netem
+
+# Universal packet loss, corruption, duplication
+tc qdisc add dev eth0 root netem loss 10%
+tc qdisc change dev eth0 root netem corrupt 5%
+tc qdisc change dev eth0 root netem duplicate 1%
+
+# Rate limit depending on protocol
+sudo tc qdisc add dev srs_spgw_sgi root handle 1: htb default 1
+sudo tc class add dev srs_spgw_sgi parent 1: classid 1:fffe htb rate 20000kbit ceil 20000kbit
+sudo tc class show dev srs_spgw_sgi
+sudo tc -d class show dev srs_spgw_sgi
+sudo tc class add dev srs_spgw_sgi parent 1:fffe classid 1:1 htb rate 12kbit ceil 20000kbit
+sudo tc -d class show dev srs_spgw_sgi
+sudo tc class show dev srs_spgw_sgi
+sudo tc filter add dev srs_spgw_sgi parent 1: prior 7 protocol ip u32 match ip protocol 17 ff classid 1:1
+sudo tc filter add dev srs_spgw_sgi parent 1: prior 1 protocol ip u32 match ip protocol 6 ff classid 1:2
+sudo tc filter show dev srs_spgw_sgi
+
+# Delay depending on source IP
+# Create root qdisc, create 2 child classes of root class (implicit, won't show up), attach qdiscs to the leaf classes
+# Use filters to redirect traffic to a specific class
+sudo tc qdisc add dev s1-eth1 root handle 1: htb
+
+sudo tc class add dev s1-eth1 parent 1: classid 1:10 htb rate 100000kbit ceil 100000kbit
+sudo tc qdisc add dev s1-eth1 parent 1:10 netem delay 11ms
+
+sudo tc class add dev s1-eth1 parent 1: classid 1:20 htb rate 100000kbit ceil 100000kbit
+sudo tc qdisc add dev s1-eth1 parent 1:20 netem delay 22ms
+
+sudo tc filter add dev s1-eth1 protocol ip parent 1: prio 1 u32 match ip src 10.20.30.101/32 flowid 1:10
+sudo tc filter add dev s1-eth1 protocol ip parent 1: prio 1 u32 match ip src 10.20.30.102/32 flowid 1:20

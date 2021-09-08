@@ -1,0 +1,82 @@
+# Extract specific fields
+# Run 'tshark -G fields' to see all possible fields (redirect output to file, it's rather large)
+tshark -r live-migrate-icmp.pcap -T fields -e frame.number -e frame.time_relative -e frame.len
+tshark -r live-migrate-icmp.pcap -T json -e frame.number -e frame.time_relative -e frame.len
+
+
+# Calculate summaries of captures
+ubuntu@tlin-minik:~$ tshark -r exporter-traffic.pcap -q -z io,stat,0,"SUM(frame.len)frame.len and ip.addr == 192.168.200.12 and tcp.port == 9876"
+=====================================================================================
+| IO Statistics                                                                     |
+|                                                                                   |
+| Duration: 110391.5 secs                                                            |
+| Interval: 110391.5 secs                                                            |
+|                                                                                   |
+| Col 1: SUM(frame.len)frame.len and ip.addr == 192.168.200.12 and tcp.port == 9876 |
+|-----------------------------------------------------------------------------------|
+|                    |1         |                                                   |
+| Interval           |    SUM   |                                                   |
+|-------------------------------|                                                   |
+|     0.0 <> 110391.5 | 86927970 |                                                   |
+=====================================================================================
+
+ubuntu@tlin-minik:~$ tshark -r exporter-traffic.pcap -q -z io,stat,0,"SUM(frame.len)frame.len and ip.addr == 192.168.200.13 and tcp.port == 9876"
+=====================================================================================
+| IO Statistics                                                                     |
+|                                                                                   |
+| Duration: 110391.5 secs                                                            |
+| Interval: 110391.5 secs                                                            |
+|                                                                                   |
+| Col 1: SUM(frame.len)frame.len and ip.addr == 192.168.200.13 and tcp.port == 9876 |
+|-----------------------------------------------------------------------------------|
+|                    |1          |                                                  |
+| Interval           |    SUM    |                                                  |
+|--------------------------------|                                                  |
+|     0.0 <> 110391.5 | 226638740 |                                                  |
+=====================================================================================
+
+ubuntu@tlin-minik:~$ tshark -r exporter-traffic.pcap -q -z io,stat,0,"SUM(frame.len)frame.len && tcp.port == 8091"
+======================================================
+| IO Statistics                                      |
+|                                                    |
+| Duration: 110391.5 secs                             |
+| Interval: 110391.5 secs                             |
+|                                                    |
+| Col 1: SUM(frame.len)frame.len && tcp.port == 8091 |
+|----------------------------------------------------|
+|                    |1         |                    |
+| Interval           |    SUM   |                    |
+|-------------------------------|                    |
+|     0.0 <> 110391.5 | 80226176 |                    |
+======================================================
+
+ubuntu@tlin-minik:~$ tshark -r exporter-traffic.pcap -q -z io,stat,0,"SUM(frame.len)frame.len && tcp.port == 9191"
+======================================================
+| IO Statistics                                      |
+|                                                    |
+| Duration: 110391.5 secs                             |
+| Interval: 110391.5 secs                             |
+|                                                    |
+| Col 1: SUM(frame.len)frame.len && tcp.port == 9191 |
+|----------------------------------------------------|
+|                    |1          |                   |
+| Interval           |    SUM    |                   |
+|--------------------------------|                   |
+|     0.0 <> 110391.5 | 151077751 |                   |
+======================================================
+
+
+ubuntu@tlin-minik:~$ tshark -r netflow-traffic.pcap -q -z io,stat,0,"SUM(frame.len)frame.len"
+=====================================
+| IO Statistics                     |
+|                                   |
+| Duration: 109307.1 secs            |
+| Interval: 109307.1 secs            |
+|                                   |
+| Col 1: SUM(frame.len)frame.len    |
+|-----------------------------------|
+|                    |1         |   |
+| Interval           |    SUM   |   |
+|-------------------------------|   |
+|     0.0 <> 109307.1 | 91177564 |   |
+=====================================
