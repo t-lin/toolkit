@@ -10,3 +10,12 @@
 [submodule "c_code/pping-exporter"]
 	path = c_code/pping-exporter
 	url = https://github.com/t-lin/pping-exporter.git
+[submodule "go_code/netflow_exporter"]
+	path = go_code/netflow_exporter
+	url = https://github.com/t-lin/netflow_exporter.git
+[submodule "go_code/ping-exporter"]
+	path = go_code/ping-exporter
+	url = https://github.com/t-lin/ping-exporter.git
+[submodule "go_code/service_monitor"]
+	path = go_code/service_monitor
+	url = https://github.com/t-lin/service_monitor.git
