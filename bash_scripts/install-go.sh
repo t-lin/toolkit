@@ -1,6 +1,6 @@
 #!/bin/bash
-DL_PAGE_URL=https://golang.org/dl/
-DL_PAGE=`curl -s ${DL_PAGE_URL}`
+DL_PAGE_URL=https://go.dev/dl/
+DL_PAGE=`curl -s -L ${DL_PAGE_URL}`
 if [[ -n ${DL_PAGE} ]]; then
     DL_URLS=`echo "${DL_PAGE}" | grep -o -E "go[0-9.]+src.tar.gz"`
     VERSIONS=`echo "${DL_URLS}" | sed -E 's#(go|.src.tar.gz)##g' | sort -t . -k 2 -V | uniq`
