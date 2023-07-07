@@ -1,16 +1,17 @@
-#CPPFLAGS += -I/usr/local/include
 LDFLAGS += -lgtest -lpthread
 CXXFLAGS += -std=gnu++17 -O3 -Wall
 CXXFLAGS += -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wimplicit-fallthrough -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast
 
-all: test_logutils 
+BINNAME = test_logutils
+
+all: $(BINNAME)
+
+$(BINNAME): test_logutils.cpp log_utils.hpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $(BINNAME) $(LDFLAGS)
 
 debug: CXXFLAGS += -DDEBUG -g
 debug: all
 
-test_logutils: test_logutils.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
-
 clean:
-	rm -f test_logutils
+	rm -f $(BINNAME)
 

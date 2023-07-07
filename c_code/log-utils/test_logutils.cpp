@@ -300,6 +300,52 @@ TEST_F(LogUtilsTest, SetThresholdFatal) {
   ASSERT_TRUE(startIdx == string::npos);
 }
 
+TEST_F(LogUtilsTest, SetThresholdNone) {
+  // Save old stderr FD & redirect to local buffer
+  StderrToBuf(buffer, BUFSIZ);
+
+  // Should not print anything
+  string msg = "hello world";
+  logger.setThreshold(Logger::NONE);
+  logger(msg, Logger::DEBUG);
+  logger(msg, Logger::INFO);
+  logger(msg, Logger::WARN);
+  logger(msg, Logger::ERROR);
+  logger(msg, Logger::FATAL);
+  logger(msg, Logger::NONE);
+
+  // Restore stderr
+  RestoreStderr();
+
+  string bufMsg(buffer, BUFSIZ);
+  //printf("%s\n", buffer); // Uncomment to see actual content
+
+  size_t startIdx = bufMsg.find(msg);
+  ASSERT_TRUE(startIdx == string::npos);
+}
+
+TEST_F(LogUtilsTest, UnknownLogLvl) {
+  // Save old stderr FD & redirect to local buffer
+  StderrToBuf(buffer, BUFSIZ);
+
+  // Should print, but w/ "UNKNOWN LOG LVL" shown
+  string msg = "hello world";
+  logger.setThreshold(Logger::DEBUG);
+  logger(msg, 100);
+
+  // Restore stderr
+  RestoreStderr();
+
+  string bufMsg(buffer, BUFSIZ);
+  //printf("%s\n", buffer); // Uncomment to see actual content
+
+  size_t startIdx = bufMsg.find("[UNKNOWN_LOG_LVL]");
+  ASSERT_TRUE(startIdx != string::npos);
+
+  startIdx = bufMsg.find(msg, startIdx + 1);
+  ASSERT_TRUE(startIdx != string::npos);
+}
+
 /**
   * For lack of a better place right now, the type verification helpers for
   * cppPrintf (areFundamentalTypes and isFundamentalOrPointer) are in LogUtils,

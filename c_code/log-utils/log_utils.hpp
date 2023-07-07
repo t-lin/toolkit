@@ -81,6 +81,12 @@ class LogMsgMeta {
     LogMsgMeta() : nSuppress(0) {};
 };
 
+// Avoid conflict between 'DEBUG' as an enum and a preprocessor macro
+#ifdef DEBUG
+#undef DEBUG
+#define DEBUG DEBUG
+#endif
+
 // Logger class that wraps around a ROS2 node object, with a log
 // throttling capability for cases with identical messages.
 // When it emits logging messages, it uses the node's logging utilities.
@@ -88,14 +94,12 @@ class LogMsgMeta {
 class Logger {
   public:
     using LogLvl = uint8_t;
-    enum : LogLvl {
-      DEBUG = 10,
-      INFO = 20,
-      WARN = 30,
-      ERROR = 40,
-      FATAL = 50,
-      NONE = 0
-    };
+    static constexpr LogLvl DEBUG = 10;
+    static constexpr LogLvl INFO = 20;
+    static constexpr LogLvl WARN = 30;
+    static constexpr LogLvl ERROR = 40;
+    static constexpr LogLvl FATAL = 50;
+    static constexpr LogLvl NONE = 0;
 
   private:
     LogLvl currLvl_ = INFO;
@@ -114,6 +118,11 @@ class Logger {
       static const std::string WARN_PREAMBLE = "[WARN]";
       static const std::string ERROR_PREAMBLE = "[ERROR]";
       static const std::string FATAL_PREAMBLE = "[FATAL]";
+      static const std::string UNKNOWN = "[UNKNOWN_LOG_LVL]";
+
+      if (currLvl_ == NONE || lvl == NONE) {
+        return;
+      }
 
       const char* pPreamble = nullptr;
       switch (lvl) {
@@ -132,10 +141,8 @@ class Logger {
         case FATAL:
           pPreamble = FATAL_PREAMBLE.c_str();
           break;
-        case NONE:
-        [[ fallthrough ]];
         default:
-          ; // Do nothing
+          pPreamble = UNKNOWN.c_str();
       }
 
       if (lvl >= currLvl_) {
