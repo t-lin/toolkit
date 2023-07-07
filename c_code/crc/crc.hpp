@@ -127,7 +127,7 @@ constexpr uint64_t CRC_POLY_TABLE[] = {
 
 #define CRC_INIT (0xDEADBEEFFEEDFACE)
 
-#define BYTE_NUM_VALS (256)
+#define BYTE_NUM_VALS (256UL)
 
 /**
  * @brief Pre-generate look-up table to help speed up CRC calculations.
@@ -143,23 +143,23 @@ generateCRCLUT(const uint64_t crcPoly) {
   static_assert(N >= 8); // TODO: Modify later to support N < 8
 
   using repr_type = typename Tins::small_uint<N>::repr_type;
-  const repr_type MSB_ONE = 1 << (N -1);
-  const repr_type MAX_VAL = Tins::small_uint<N>::max_value;
+  constexpr repr_type MSB_ONE = 1UL << (N - 1);
+  constexpr repr_type MAX_VAL = Tins::small_uint<N>::max_value;
   std::array<repr_type, BYTE_NUM_VALS> table = {};
 
-  for (uint16_t i = 0; i < BYTE_NUM_VALS; i++) {
-    repr_type crc = 0;
+  for (uint32_t i = 0; i < BYTE_NUM_VALS; i++) {
+    uint64_t crc = 0;
 
-    crc = (crc ^ (i << (N - 8))) & MAX_VAL;
+    crc = crc ^ (i << (N - 8));
     for (int bit = 0; bit < 8; bit++) {
       if (0 == (crc & MSB_ONE)) {
-        crc = (crc << 1) & MAX_VAL;
+        crc = crc << 1;
       } else {
-        crc = ((crc << 1) ^ crcPoly) & MAX_VAL;
+        crc = (crc << 1) ^ crcPoly;
       }
     }
 
-    table[i] = crc;
+    table[i] = crc & MAX_VAL;
   }
 
   return table;
@@ -189,19 +189,19 @@ typename Tins::small_uint<N>::repr_type CRC(const uint8_t* const data,
   static_assert(crcPoly != 0);
 
   using repr_type = typename Tins::small_uint<N>::repr_type;
-  const repr_type MAX_VAL = Tins::small_uint<N>::max_value;
+  constexpr repr_type MAX_VAL = Tins::small_uint<N>::max_value;
   static constexpr auto LUT = generateCRCLUT<N>(crcPoly);
 
   if (data == nullptr) {
     throw std::invalid_argument("Cannot calculate CRC w/ NULL buffer");
   }
 
-  repr_type crc = init;
+  uint64_t crc = init;
   for (uint64_t i = 0; i < dataLen; i++) {
     crc = (LUT[(crc >> (N - 8)) ^ data[i]] ^ (crc << 8)) & MAX_VAL;
   }
 
-  return crc;
+  return crc & MAX_VAL;
 }
 
 /**
