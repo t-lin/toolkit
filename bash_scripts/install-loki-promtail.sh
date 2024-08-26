@@ -3,8 +3,8 @@ DL_PAGE_URL=https://github.com/grafana/loki/releases
 REL_API_URL=https://api.github.com/repos/grafana/loki/releases
 REL_API_RES=`curl -s ${REL_API_URL}`
 if [[ -n ${REL_API_RES} ]]; then
-    # NOTE: Restricting version grep to 2.x
-    DL_OPTIONS=`echo "${REL_API_RES}" | grep -o -E "2.[0-9].[0-9]/loki-linux-amd64.zip"`
+    # NOTE: Restricting version grep to 2.9.x
+    DL_OPTIONS=`echo "${REL_API_RES}" | grep -o -E "2.9.[0-9]/loki-linux-amd64.zip"`
     VERSIONS=`echo "${DL_OPTIONS}" | sed -E 's#/loki-linux-amd64.zip##g' | sort -t . -k 2 -V | uniq`
 else
     echo "ERROR: Unable to find available versions, (${DL_PAGE_URL}) appears to be down"
@@ -77,7 +77,7 @@ sudo mkdir -p ${DB_PATH}
 # Create Loki config file if it doesn't exist
 if [[ ! -f ${CONFIG_PATH}/loki.yaml ]]; then
     echo "Creating Loki configuration files in ${CONFIG_PATH}/"
-    wget https://raw.githubusercontent.com/grafana/loki/master/cmd/loki/loki-local-config.yaml -O ${CONFIG_PATH}/loki.yaml
+    wget https://raw.githubusercontent.com/grafana/loki/release-2.9.x/cmd/loki/loki-local-config.yaml -O ${CONFIG_PATH}/loki.yaml
     sed -i -E 's#/tmp/wal#'${DB_PATH}'/wal#g' ${CONFIG_PATH}/loki.yaml
     sed -i -E 's#/tmp/loki#'${DB_PATH}'#g' ${CONFIG_PATH}/loki.yaml
 fi
