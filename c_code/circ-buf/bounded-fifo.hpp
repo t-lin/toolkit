@@ -1,8 +1,9 @@
 #pragma once
-/* A CircularBuffer implementation that doesn't overrite the contents
- * when its capacity is reached. Essentially, this is a bounded queue
- * but under-the-hood implements wrap-around the end of an array, thus
- * improving performance of buffers.
+/* A BoundedFIFO queue that doesn't require any movement of elements or
+ * re-allocation of memory. Under-the-hood, it is implemented as a circular
+ * buffer that doesn't overrite the contents when its capacity is reached.
+ * Essentially, it's an array with wrap-around, thus improving performance
+ * of buffers.
  */
 
 #include <iostream>
@@ -15,9 +16,9 @@
 
 #include "helpers.hpp" // for cppPrintf()
 
-// Forward-declare CircularBuffer's iterators
+// Forward-declare BoundedFIFO's iterators
 template <typename T, uint64_t N>
-class CircularBufferIterator;
+class BoundedFIFOIterator;
 
 /* Use std::array as the base class.
  * We use protected inheritence to avoid exposing all the available methods
@@ -27,7 +28,7 @@ class CircularBufferIterator;
  */
 #define ARR_T typename std::array<T, N>
 template <typename T, uint64_t N>
-class CircularBuffer : protected std::array<T, N> {
+class BoundedFIFO : protected std::array<T, N> {
   // Reserve the largest uint64 value as a sentinel value.
   // No sane code should use a buffer this large...
   static constexpr uint64_t END = std::numeric_limits<uint64_t>::max();
@@ -45,8 +46,8 @@ class CircularBuffer : protected std::array<T, N> {
 
   public:
     typedef T value_type;
-    typedef CircularBufferIterator<T, N> iterator;
-    typedef CircularBufferIterator<const T, N> const_iterator;
+    typedef BoundedFIFOIterator<T, N> iterator;
+    typedef BoundedFIFOIterator<const T, N> const_iterator;
     friend iterator; // Allow iterators to access private members
 
     typedef std::reverse_iterator<iterator> reverse_iterator;
@@ -54,8 +55,8 @@ class CircularBuffer : protected std::array<T, N> {
 
     typedef ptrdiff_t difference_type;
 
-    CircularBuffer();
-    ~CircularBuffer();
+    BoundedFIFO();
+    ~BoundedFIFO();
 
     constexpr ARR_T::reference at(uint64_t pos);
     constexpr ARR_T::reference operator[](uint64_t pos);
@@ -81,8 +82,8 @@ class CircularBuffer : protected std::array<T, N> {
 
     constexpr void pop_front() noexcept;
 
-    friend bool operator==(const CircularBuffer& lhs,
-                           const CircularBuffer& rhs) {
+    friend bool operator==(const BoundedFIFO& lhs,
+                           const BoundedFIFO& rhs) {
       // Check if the basic state info are idenical.
       if ( (lhs.size_ != rhs.size_) ||
            (lhs.head_ != rhs.head_) ||
@@ -105,15 +106,15 @@ class CircularBuffer : protected std::array<T, N> {
       return true;
     }
 
-    friend bool operator!=(const CircularBuffer& lhs,
-                           const CircularBuffer& rhs) {
+    friend bool operator!=(const BoundedFIFO& lhs,
+                           const BoundedFIFO& rhs) {
       return !operator==(lhs, rhs);
     }
 };
 
 
-// CircularBuffer Iterator class
-// NOTE: This class holds a pointer to the CircularBuffer it iterates through.
+// BoundedFIFO Iterator class
+// NOTE: This class holds a pointer to the BoundedFIFO it iterates through.
 //       Thus, it is considered UNDEFINED BEHAVIOUR when:
 //         - Using instances of this class when the underlying buffer it
 //           represents goes out-of-scope;
@@ -121,11 +122,11 @@ class CircularBuffer : protected std::array<T, N> {
 //           modifying (e.g. pushing or popping) from the underlying buffer; or
 //         - Dereferencing either end() or rend().
 template <typename T, uint64_t N>
-class CircularBufferIterator {
+class BoundedFIFOIterator {
   public:
     // Minimalistic iterator traits needed for std::reverse_iterator
     // See: https://en.cppreference.com/w/cpp/iterator/iterator_traits
-    typedef typename CircularBuffer<T, N>::difference_type difference_type;
+    typedef typename BoundedFIFO<T, N>::difference_type difference_type;
     typedef T value_type;
     typedef T* pointer;
     typedef T& reference;
@@ -137,13 +138,13 @@ class CircularBufferIterator {
     typedef std::random_access_iterator_tag iterator_category;
 
   protected:
-    static const auto END = CircularBuffer<T, N>::END;
+    static const auto END = BoundedFIFO<T, N>::END;
 
     // Index of current element in the underlying array
     uint64_t arrCurrIdx_ = 0;
 
-    // Pointer to the CircularBuffer object this iterator iterates through
-    CircularBuffer<T, N>* pCircBuf_ = nullptr;
+    // Pointer to the BoundedFIFO object this iterator iterates through
+    BoundedFIFO<T, N>* pCircBuf_ = nullptr;
 
     inline uint64_t distanceToEND() const {
       // Calculate the "distance to END".
@@ -198,10 +199,10 @@ class CircularBufferIterator {
     // data(), it will be a pointer to the non-const version of the
     // underlying data type -- if the return type T is const-qualified it
     // will get auto-converted to the const type upon return.
-    CircularBufferIterator(const uint64_t idx,
-                           const CircularBuffer<T, N>* const pBuf)
+    BoundedFIFOIterator(const uint64_t idx,
+                        const BoundedFIFO<T, N>* const pBuf)
         : arrCurrIdx_(idx),
-          pCircBuf_(const_cast<CircularBuffer<T, N>*>(pBuf)) {
+          pCircBuf_(const_cast<BoundedFIFO<T, N>*>(pBuf)) {
       if (idx >= N && idx != END) {
         throw std::invalid_argument(
             "Iterator index cannot be greater than or equal to array size");
@@ -210,7 +211,7 @@ class CircularBufferIterator {
       }
     }
 
-    ~CircularBufferIterator() {}
+    ~BoundedFIFOIterator() {}
 
     // NOTE: Currently, dereferencing on rend() will be the same as front().
     T& operator*() const {
@@ -227,7 +228,7 @@ class CircularBufferIterator {
     }
 
     // Prefix ++ operator (e.g. ++a)
-    CircularBufferIterator& operator++() noexcept {
+    BoundedFIFOIterator& operator++() noexcept {
       if (pCircBuf_->size_ != 0 && arrCurrIdx_ != END) {
         uint64_t newIdx = (arrCurrIdx_ + 1) % N;
         arrCurrIdx_ = (arrCurrIdx_ == pCircBuf_->tail_) ? END : newIdx;
@@ -237,16 +238,16 @@ class CircularBufferIterator {
     }
 
     // Postfix ++ operator (e.g. a++)
-    CircularBufferIterator operator++(int) noexcept {
+    BoundedFIFOIterator operator++(int) noexcept {
       // Make a copy of this iterator as it is now, and return the copy.
-      CircularBufferIterator tmp = *this;
+      BoundedFIFOIterator tmp = *this;
       operator++();
 
       return tmp;
     }
 
     // Prefix -- operator (e.g. --a)
-    CircularBufferIterator& operator--() {
+    BoundedFIFOIterator& operator--() {
       // Check size first, since arrCurrIdx_ could be END
       if (pCircBuf_->size_ != 0 && arrCurrIdx_ != pCircBuf_->head_) {
         uint64_t newIdx = (arrCurrIdx_ == 0) ? N - 1 : arrCurrIdx_ - 1;
@@ -257,16 +258,16 @@ class CircularBufferIterator {
     }
 
     // Postfix -- operator (e.g. a--)
-    CircularBufferIterator operator--(int) {
+    BoundedFIFOIterator operator--(int) {
       // Make a copy of this iterator as it is now, and return the copy.
-      CircularBufferIterator tmp = *this;
+      BoundedFIFOIterator tmp = *this;
       operator--();
 
       return tmp;
     }
 
     // Assignment operator
-    CircularBufferIterator& operator=(const CircularBufferIterator& rhs) {
+    BoundedFIFOIterator& operator=(const BoundedFIFOIterator& rhs) {
       pCircBuf_ = rhs.pCircBuf_;
       arrCurrIdx_ = rhs.arrCurrIdx_;
 
@@ -276,7 +277,7 @@ class CircularBufferIterator {
     // Plus-assignment operator
     // NOTE: Adding beyond END will stay at END.
     //       This mimics behaviour of forward iterator.
-    CircularBufferIterator& operator+=(const difference_type diff) {
+    BoundedFIFOIterator& operator+=(const difference_type diff) {
       if (diff < 0) {
         return operator-=(-diff);
       }
@@ -296,7 +297,7 @@ class CircularBufferIterator {
     // Minus-assignment operator
     // NOTE: Adding beyond head_ will stay at head_.
     //       This mimics behaviour of reverse iterator.
-    CircularBufferIterator& operator-=(const difference_type diff) {
+    BoundedFIFOIterator& operator-=(const difference_type diff) {
       if (diff < 0) {
         return operator+=(-diff);
       }
@@ -341,8 +342,8 @@ class CircularBufferIterator {
      **************************************/
 
     // Equality operator
-    friend bool operator==(const CircularBufferIterator& lhs,
-                           const CircularBufferIterator& rhs) {
+    friend bool operator==(const BoundedFIFOIterator& lhs,
+                           const BoundedFIFOIterator& rhs) {
       if (lhs.pCircBuf_ != rhs.pCircBuf_) {
         return false;
       }
@@ -351,13 +352,13 @@ class CircularBufferIterator {
     }
 
     // Inequality operator
-    friend bool operator!=(const CircularBufferIterator& lhs,
-                           const CircularBufferIterator& rhs) {
+    friend bool operator!=(const BoundedFIFOIterator& lhs,
+                           const BoundedFIFOIterator& rhs) {
       return !operator==(lhs, rhs);
     }
 
-    friend bool operator<(const CircularBufferIterator& lhs,
-                          const CircularBufferIterator& rhs) {
+    friend bool operator<(const BoundedFIFOIterator& lhs,
+                          const BoundedFIFOIterator& rhs) {
       if (lhs.pCircBuf_ != rhs.pCircBuf_) {
         return false;
       }
@@ -366,8 +367,8 @@ class CircularBufferIterator {
       return lhs.distanceFromHead() < rhs.distanceFromHead();
     }
 
-    friend bool operator>(const CircularBufferIterator& lhs,
-                          const CircularBufferIterator& rhs) {
+    friend bool operator>(const BoundedFIFOIterator& lhs,
+                          const BoundedFIFOIterator& rhs) {
       if (lhs.pCircBuf_ != rhs.pCircBuf_) {
         return false;
       }
@@ -376,58 +377,58 @@ class CircularBufferIterator {
       return lhs.distanceFromHead() > rhs.distanceFromHead();
     }
 
-    friend bool operator<=(const CircularBufferIterator& lhs,
-                           const CircularBufferIterator& rhs) {
+    friend bool operator<=(const BoundedFIFOIterator& lhs,
+                           const BoundedFIFOIterator& rhs) {
       return operator>(lhs, rhs) == false;
     }
 
-    friend bool operator>=(const CircularBufferIterator& lhs,
-                           const CircularBufferIterator& rhs) {
+    friend bool operator>=(const BoundedFIFOIterator& lhs,
+                           const BoundedFIFOIterator& rhs) {
       return operator<(lhs, rhs) == false;
     }
 
     // Iterator difference operator
-    friend CircularBufferIterator::difference_type operator-(
-        const CircularBufferIterator& lhs,
-        const CircularBufferIterator& rhs) {
+    friend BoundedFIFOIterator::difference_type operator-(
+        const BoundedFIFOIterator& lhs,
+        const BoundedFIFOIterator& rhs) {
       return std::addressof(*lhs) - std::addressof(*rhs);
     }
 
     // Iterator plus integer operator
-    friend CircularBufferIterator operator+(
-        const CircularBufferIterator& lhs,
-        const CircularBufferIterator::difference_type diff) {
-      CircularBufferIterator tmp = lhs;
+    friend BoundedFIFOIterator operator+(
+        const BoundedFIFOIterator& lhs,
+        const BoundedFIFOIterator::difference_type diff) {
+      BoundedFIFOIterator tmp = lhs;
       return tmp += diff;
     }
 
     // Integer plus iterator operator
-    friend CircularBufferIterator operator+(
-        const CircularBufferIterator::difference_type diff,
-        const CircularBufferIterator& lhs) {
+    friend BoundedFIFOIterator operator+(
+        const BoundedFIFOIterator::difference_type diff,
+        const BoundedFIFOIterator& lhs) {
       return lhs + diff;
     }
 
     // Iterator minus integer operator
-    friend CircularBufferIterator operator-(
-        const CircularBufferIterator& lhs,
-        const CircularBufferIterator::difference_type diff) {
-      CircularBufferIterator tmp = lhs;
+    friend BoundedFIFOIterator operator-(
+        const BoundedFIFOIterator& lhs,
+        const BoundedFIFOIterator::difference_type diff) {
+      BoundedFIFOIterator tmp = lhs;
       return tmp -= diff;
     }
 };
 
 /***************************************
- * Definitions for class CircularBuffer
+ * Definitions for class BoundedFIFO
  ***************************************/
 template <typename T, uint64_t N>
-CircularBuffer<T, N>::CircularBuffer() {}
+BoundedFIFO<T, N>::BoundedFIFO() {}
 
 template <typename T, uint64_t N>
-CircularBuffer<T, N>::~CircularBuffer() {}
+BoundedFIFO<T, N>::~BoundedFIFO() {}
 
 template <typename T, uint64_t N>
-constexpr ARR_T::reference CircularBuffer<T, N>::at(uint64_t pos) {
+constexpr ARR_T::reference BoundedFIFO<T, N>::at(uint64_t pos) {
   if (pos >= size_) {
     throw std::out_of_range(
         cppPrintf("Cannot access index %lu, "
@@ -438,13 +439,12 @@ constexpr ARR_T::reference CircularBuffer<T, N>::at(uint64_t pos) {
 }
 
 template <typename T, uint64_t N>
-constexpr ARR_T::reference
-CircularBuffer<T, N>::operator[](uint64_t pos) {
+constexpr ARR_T::reference BoundedFIFO<T, N>::operator[](uint64_t pos) {
   return at(pos);
 }
 
 template <typename T, uint64_t N>
-constexpr ARR_T::reference CircularBuffer<T, N>::front() {
+constexpr ARR_T::reference BoundedFIFO<T, N>::front() {
   if (0 == size_) {
     throw std::runtime_error("Empty buffer; nothing at the front\n");
   }
@@ -453,7 +453,7 @@ constexpr ARR_T::reference CircularBuffer<T, N>::front() {
 }
 
 template <typename T, uint64_t N>
-constexpr ARR_T::reference CircularBuffer<T, N>::back() {
+constexpr ARR_T::reference BoundedFIFO<T, N>::back() {
   if (0 == size_) {
     throw std::runtime_error("Empty buffer; nothing at the back\n");
   }
@@ -462,8 +462,8 @@ constexpr ARR_T::reference CircularBuffer<T, N>::back() {
 }
 
 template <typename T, uint64_t N>
-constexpr typename CircularBuffer<T, N>::iterator
-CircularBuffer<T, N>::begin() noexcept {
+constexpr typename BoundedFIFO<T, N>::iterator
+BoundedFIFO<T, N>::begin() noexcept {
   if (size_ == 0) {
     return end();
   }
@@ -472,72 +472,72 @@ CircularBuffer<T, N>::begin() noexcept {
 }
 
 template <typename T, uint64_t N>
-constexpr typename CircularBuffer<T, N>::const_iterator
-CircularBuffer<T, N>::begin() const noexcept {
+constexpr typename BoundedFIFO<T, N>::const_iterator
+BoundedFIFO<T, N>::begin() const noexcept {
   if (size_ == 0) {
     return end();
   }
 
   // const_iterator expects template type to be "const T"
   return const_iterator(
-      head_, reinterpret_cast<const CircularBuffer<const T, N>*>(this));
+      head_, reinterpret_cast<const BoundedFIFO<const T, N>*>(this));
 }
 
 template <typename T, uint64_t N>
-constexpr typename CircularBuffer<T, N>::iterator
-CircularBuffer<T, N>::end() noexcept {
+constexpr typename BoundedFIFO<T, N>::iterator
+BoundedFIFO<T, N>::end() noexcept {
   return iterator(END, this);
 }
 
 template <typename T, uint64_t N>
-constexpr typename CircularBuffer<T, N>::const_iterator
-CircularBuffer<T, N>::end() const noexcept {
+constexpr typename BoundedFIFO<T, N>::const_iterator
+BoundedFIFO<T, N>::end() const noexcept {
   // const_iterator expects template type to be "const T"
   return const_iterator(
-      END, reinterpret_cast<const CircularBuffer<const T, N>*>(this));
+      END, reinterpret_cast<const BoundedFIFO<const T, N>*>(this));
 }
 
 template <typename T, uint64_t N>
-constexpr typename CircularBuffer<T, N>::reverse_iterator
-CircularBuffer<T, N>::rbegin() noexcept {
+constexpr typename BoundedFIFO<T, N>::reverse_iterator
+BoundedFIFO<T, N>::rbegin() noexcept {
   return reverse_iterator(end());
 }
 
 //template <typename T, uint64_t N>
-//constexpr typename CircularBuffer<T, N>::const_reverse_iterator
-//CircularBuffer<T, N>::rbegin() const noexcept {
+//constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
+//BoundedFIFO<T, N>::rbegin() const noexcept {
 //  return const_reverse_iterator(end());
 //}
 
 template <typename T, uint64_t N>
-constexpr typename CircularBuffer<T, N>::reverse_iterator
-CircularBuffer<T, N>::rend() noexcept {
+constexpr typename BoundedFIFO<T, N>::reverse_iterator
+BoundedFIFO<T, N>::rend() noexcept {
   return reverse_iterator(begin());
 }
 
 //template <typename T, uint64_t N>
-//constexpr typename CircularBuffer<T, N>::const_reverse_iterator
-//CircularBuffer<T, N>::rend() const noexcept {
+//constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
+//BoundedFIFO<T, N>::rend() const noexcept {
 //  return const_reverse_iterator(begin());
 //}
 
 template <typename T, uint64_t N>
-constexpr bool CircularBuffer<T, N>::empty() const noexcept {
+constexpr bool BoundedFIFO<T, N>::empty() const noexcept {
   return size_ == 0;
 }
 
 template <typename T, uint64_t N>
-constexpr uint64_t CircularBuffer<T, N>::size() const noexcept {
+constexpr uint64_t BoundedFIFO<T, N>::size() const noexcept {
   return size_;
 }
 
 template <typename T, uint64_t N>
-constexpr uint64_t CircularBuffer<T, N>::max_size() const noexcept {
+constexpr uint64_t BoundedFIFO<T, N>::max_size() const noexcept {
   return N;
 }
 
 template <typename T, uint64_t N>
-constexpr bool CircularBuffer<T, N>::push_back(const T& val) {
+constexpr bool BoundedFIFO<T, N>::push_back(const T& val) {
   if (size_ >= N) {
     return false;
   }
@@ -551,13 +551,13 @@ constexpr bool CircularBuffer<T, N>::push_back(const T& val) {
 }
 
 template <typename T, uint64_t N>
-constexpr bool CircularBuffer<T, N>::push_back(T&& val) {
+constexpr bool BoundedFIFO<T, N>::push_back(T&& val) {
   T tmp(std::move(val));
   return push_back(tmp);
 }
 
 template <typename T, uint64_t N>
-constexpr void CircularBuffer<T, N>::pop_front() noexcept {
+constexpr void BoundedFIFO<T, N>::pop_front() noexcept {
   if (size_ == 0) {
     return;
   }

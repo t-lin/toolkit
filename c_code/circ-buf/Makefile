@@ -3,11 +3,11 @@ LDFLAGS += -lgtest -lpthread
 CXXFLAGS += -std=gnu++17 -O0 -g -Wall -Wsign-compare -Wconversion -Wpedantic
 CXX=clang++-10
 
-BINNAME = test-circ-buf
+BINNAME = test-bounded-fifo
 
 all: $(BINNAME)
 
-$(BINNAME): test-circ-buf.cpp circ-buf.hpp helpers.hpp
+$(BINNAME): test-bounded-fifo.cpp bounded-fifo.hpp helpers.hpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $(BINNAME) $(LDFLAGS)
 
 #debug:  main.cpp

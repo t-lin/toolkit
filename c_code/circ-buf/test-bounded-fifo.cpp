@@ -7,7 +7,7 @@
 #include <type_traits>
 
 // Library to test
-#include "circ-buf.hpp"
+#include "bounded-fifo.hpp"
 
 #define TARGET_SIZE (10U)
 
@@ -39,13 +39,13 @@ void myTest() {
  ************************/
 
 template <uint64_t CAP>
-CircularBuffer<uint8_t, CAP> createBufferNoRotatation(uint8_t sz = CAP) {
+BoundedFIFO<uint8_t, CAP> createBufferNoRotatation(uint8_t sz = CAP) {
   // Should not add more than the capacity.
   if (sz > CAP) {
     throw std::invalid_argument("sz cannot be greater than CAP\n");
   }
 
-  CircularBuffer<uint8_t, CAP> circBuf;
+  BoundedFIFO<uint8_t, CAP> circBuf;
 
   // Add some data; 1-indexed
   for (uint8_t val = 1; val <= sz; val++) {
@@ -56,14 +56,14 @@ CircularBuffer<uint8_t, CAP> createBufferNoRotatation(uint8_t sz = CAP) {
 }
 
 template <uint64_t CAP>
-CircularBuffer<uint8_t, CAP> createRotatedBuffer(uint8_t nRotate) {
+BoundedFIFO<uint8_t, CAP> createRotatedBuffer(uint8_t nRotate) {
   // Should not rotate same amount or greater than TARGET_SIZE.
   // Okay, in theory you can rotate more than TARGET_SIZE but let's be strict.
   if (nRotate >= CAP) {
     throw std::invalid_argument("nRotate should be less than CAP\n");
   }
 
-  CircularBuffer<uint8_t, CAP> circBuf =
+  BoundedFIFO<uint8_t, CAP> circBuf =
       createBufferNoRotatation<CAP>(TARGET_SIZE);
 
   // Pop some data, then add back.
@@ -76,7 +76,7 @@ CircularBuffer<uint8_t, CAP> createRotatedBuffer(uint8_t nRotate) {
   return circBuf;
 }
 
-CircularBuffer<uint8_t, TARGET_SIZE> createRotatedPartialBuffer(
+BoundedFIFO<uint8_t, TARGET_SIZE> createRotatedPartialBuffer(
     const uint8_t nRemove,
     const uint8_t nAdd) {
 
@@ -86,7 +86,7 @@ CircularBuffer<uint8_t, TARGET_SIZE> createRotatedPartialBuffer(
     throw std::invalid_argument("nRemove must be > than nAdd\n");
   }
 
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
 
   // Pop some data, then add back less than what we popped.
@@ -108,7 +108,7 @@ CircularBuffer<uint8_t, TARGET_SIZE> createRotatedPartialBuffer(
 // NOTE: These tests assume that sequential values are stored in the circular
 //       buffer from the head to the tail.
 //       Also, these tests assume that front() and back() works correctly.
-void forwardIteratorTests(CircularBuffer<uint8_t, TARGET_SIZE>& circBuf) {
+void forwardIteratorTests(BoundedFIFO<uint8_t, TARGET_SIZE>& circBuf) {
   // Forward Iterators: Test postfix ++ operator
   uint8_t val = circBuf.front();
   for (auto it = circBuf.begin(); it != circBuf.end();) {
@@ -151,7 +151,7 @@ void forwardIteratorTests(CircularBuffer<uint8_t, TARGET_SIZE>& circBuf) {
 // NOTE: These tests assume that sequential values are stored in the circular
 //       buffer from the head to the tail.
 //       Also, these tests assume that back() and front() works correctly.
-void reverseIteratorTests(CircularBuffer<uint8_t, TARGET_SIZE>& circBuf) {
+void reverseIteratorTests(BoundedFIFO<uint8_t, TARGET_SIZE>& circBuf) {
   // Reverse Iterators: Test postfix ++ operator
   uint8_t val = circBuf.back();
   for (auto it = circBuf.rbegin(); it != circBuf.rend();) {
@@ -193,10 +193,10 @@ void reverseIteratorTests(CircularBuffer<uint8_t, TARGET_SIZE>& circBuf) {
 
 
 /*******************************
- * Start gtests; CircularBuffer
+ * Start gtests; BoundedFIFO
  *******************************/
-TEST(CircularBuffer, PushBack_Size_MaxSize) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf;
+TEST(BoundedFIFO, PushBack_Size_MaxSize) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf;
 
   ASSERT_EQ(TARGET_SIZE, circBuf.max_size());
   ASSERT_EQ(0, circBuf.size());
@@ -214,8 +214,8 @@ TEST(CircularBuffer, PushBack_Size_MaxSize) {
   ASSERT_EQ(TARGET_SIZE, circBuf.size());
 }
 
-TEST(CircularBuffer, PopFront_Front_Back) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf;
+TEST(BoundedFIFO, PopFront_Front_Back) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf;
 
   ASSERT_EQ(TARGET_SIZE, circBuf.max_size());
   ASSERT_EQ(0, circBuf.size());
@@ -248,8 +248,8 @@ TEST(CircularBuffer, PopFront_Front_Back) {
   }
 }
 
-TEST(CircularBuffer, Accessors) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+TEST(BoundedFIFO, Accessors) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
 
   // Verify front() and back()
@@ -270,8 +270,8 @@ TEST(CircularBuffer, Accessors) {
   ASSERT_THROW(circBuf[TARGET_SIZE + 10], std::out_of_range);
 }
 
-TEST(CircularBuffer, Rotate) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf;
+TEST(BoundedFIFO, Rotate) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf;
 
   // Add some data
   for (uint8_t val = 1; val <= TARGET_SIZE; val++) {
@@ -340,9 +340,9 @@ TEST(CircularBuffer, Rotate) {
   ASSERT_EQ(TARGET_SIZE, circBuf.max_size());
 }
 
-TEST(CircularBuffer, MixedFunctionality) {
+TEST(BoundedFIFO, MixedFunctionality) {
   // Create a circular buffer with capacity 3
-  CircularBuffer<uint8_t, 3> buf;
+  BoundedFIFO<uint8_t, 3> buf;
 
   // Test empty and size
   EXPECT_TRUE(buf.empty());
@@ -399,9 +399,9 @@ TEST(CircularBuffer, MixedFunctionality) {
 }
 
 // NOTE: This implicitly tests iterator equality/inequality
-TEST(CircularBuffer, EqualityInequalityOperator) {
-  CircularBuffer<uint8_t, 10> buf1;
-  CircularBuffer<uint8_t, 10> buf2;
+TEST(BoundedFIFO, EqualityInequalityOperator) {
+  BoundedFIFO<uint8_t, 10> buf1;
+  BoundedFIFO<uint8_t, 10> buf2;
   ASSERT_EQ(buf1, buf2);
 
   buf1.push_back(10);
@@ -428,10 +428,10 @@ TEST(CircularBuffer, EqualityInequalityOperator) {
   ASSERT_EQ(buf1, buf2);
 }
 
-TEST(CircularBuffer, Assignment) {
-  CircularBuffer<uint8_t, TARGET_SIZE> buf1 =
+TEST(BoundedFIFO, Assignment) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> buf1 =
       createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
-  CircularBuffer<uint8_t, TARGET_SIZE> buf2 =
+  BoundedFIFO<uint8_t, TARGET_SIZE> buf2 =
       createRotatedBuffer<TARGET_SIZE>(5);
 
   // Sanity test
@@ -445,31 +445,31 @@ TEST(CircularBuffer, Assignment) {
 }
 
 /**************************
- * CircularBufferIterator
+ * BoundedFIFOIterator
  **************************/
-TEST(CircularBufferIterator, Constructor) {
-  CircularBuffer<uint8_t, TARGET_SIZE> buf;
+TEST(BoundedFIFOIterator, Constructor) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> buf;
 
   // Use lambda to encapsulate the object creation so we can use them as
   // statements for EXPECT_THROW().
 
   // Test case of providing an initial index >= array size.
   auto fnCreateIteratorThrow1 = [&]() {
-    CircularBuffer<uint8_t, TARGET_SIZE>::iterator it(TARGET_SIZE, &buf);
+    BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it(TARGET_SIZE, &buf);
   };
 
   ASSERT_THROW(fnCreateIteratorThrow1(), std::invalid_argument);
 
   // Test case of providing a NULL circular buffer.
   auto fnCreateIteratorThrow2 = [&]() {
-    CircularBuffer<uint8_t, TARGET_SIZE>::iterator it(0, nullptr);
+    BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it(0, nullptr);
   };
 
   ASSERT_THROW(fnCreateIteratorThrow2(), std::invalid_argument);
 }
 
-TEST(CircularBufferIterator, BeginEnd_RBeginREnd_EmptyBuf) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf;
+TEST(BoundedFIFOIterator, BeginEnd_RBeginREnd_EmptyBuf) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf;
 
   // Verify empty circBuffer's begin() is the same as end()
   ASSERT_EQ(circBuf.begin(), circBuf.end());
@@ -488,8 +488,8 @@ TEST(CircularBufferIterator, BeginEnd_RBeginREnd_EmptyBuf) {
   ASSERT_EQ(circBuf.rend(), ++rend); // Test again, for sanity
 }
 
-TEST(CircularBufferIterator, IteratorDerefOp) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf;
+TEST(BoundedFIFOIterator, IteratorDerefOp) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf;
 
   // Verify throws when dereferencing end()
   // TODO: Add verification for throwing on rend() when that's implemented.
@@ -502,7 +502,7 @@ TEST(CircularBufferIterator, IteratorDerefOp) {
   for (uint8_t val = 1; val <= TARGET_SIZE; val++)
   {
     // Explicitly use its constructor instead of starting from begin()/end().
-    CircularBuffer<uint8_t, TARGET_SIZE>::iterator it(val - 1, &circBuf);
+    BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it(val - 1, &circBuf);
 
     ASSERT_EQ(*it, val);
   }
@@ -514,15 +514,15 @@ TEST(CircularBufferIterator, IteratorDerefOp) {
     // Bit tricky, can't use 'val' in the first loop as that's >= N.
     // Thus, we initialize 'it' to the highest index possible, then
     // increment it before passing to the reverse iterator.
-    CircularBuffer<uint8_t, TARGET_SIZE>::iterator it(val - 1, &circBuf);
-    CircularBuffer<uint8_t, TARGET_SIZE>::reverse_iterator revIt(++it);
+    BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it(val - 1, &circBuf);
+    BoundedFIFO<uint8_t, TARGET_SIZE>::reverse_iterator revIt(++it);
 
     ASSERT_EQ(*revIt, val);
   }
 }
 
-TEST(CircularBufferIterator, IteratorArrowOp) {
-  CircularBuffer<TestObject, TARGET_SIZE> circBuf;
+TEST(BoundedFIFOIterator, IteratorArrowOp) {
+  BoundedFIFO<TestObject, TARGET_SIZE> circBuf;
 
   // Verify throws when using arrow op on end()
   // The (void) is to get rid of "unused-value" warning
@@ -543,7 +543,7 @@ TEST(CircularBufferIterator, IteratorArrowOp) {
   val = TestObject(); // Re-initialize it
   for (uint8_t i = 0; i < TARGET_SIZE; i++) {
     // Explicitly use its constructor instead of starting from begin()/end().
-    CircularBuffer<TestObject, TARGET_SIZE>::iterator it(i, &circBuf);
+    BoundedFIFO<TestObject, TARGET_SIZE>::iterator it(i, &circBuf);
 
     val.a += static_cast<char>(1);
     val.b += static_cast<double>(1);
@@ -561,8 +561,8 @@ TEST(CircularBufferIterator, IteratorArrowOp) {
     // Bit tricky, can't use 'i' in the first loop as that's >= N.
     // Thus, we initialize 'it' to the highest index possible, then
     // increment it before passing to the reverse iterator.
-    CircularBuffer<TestObject, TARGET_SIZE>::iterator it(i - 1, &circBuf);
-    CircularBuffer<TestObject, TARGET_SIZE>::reverse_iterator revIt(++it);
+    BoundedFIFO<TestObject, TARGET_SIZE>::iterator it(i - 1, &circBuf);
+    BoundedFIFO<TestObject, TARGET_SIZE>::reverse_iterator revIt(++it);
 
     ASSERT_EQ(revIt->a, val.a);
     ASSERT_EQ(revIt->b, val.b);
@@ -576,32 +576,32 @@ TEST(CircularBufferIterator, IteratorArrowOp) {
 }
 
 // NoRotate := head is at the beginning of the underlying array.
-TEST(CircularBufferIterator, ForwardIteratorNoRotatation) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+TEST(BoundedFIFOIterator, ForwardIteratorNoRotatation) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
   forwardIteratorTests(circBuf);
 }
 
 // NoRotate := head is at the beginning of the underlying array.
-TEST(CircularBufferIterator, ReverseIteratorNoRotatation) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+TEST(BoundedFIFOIterator, ReverseIteratorNoRotatation) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
   reverseIteratorTests(circBuf);
 }
 
 // Rotation := head is not at the beginning of the underlying array.
-TEST(CircularBufferIterator, ForwardIteratorWithRotation) {
+TEST(BoundedFIFOIterator, ForwardIteratorWithRotation) {
   const uint8_t nRotate = TARGET_SIZE / 2;
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createRotatedBuffer<TARGET_SIZE>(nRotate);
 
   forwardIteratorTests(circBuf);
 }
 
 // Rotation := head is not at the beginning of the underlying array.
-TEST(CircularBufferIterator, ReverseIteratorWithRotation) {
+TEST(BoundedFIFOIterator, ReverseIteratorWithRotation) {
   const uint8_t nRotate = TARGET_SIZE / 2;
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createRotatedBuffer<TARGET_SIZE>(nRotate);
 
   reverseIteratorTests(circBuf);
@@ -610,12 +610,12 @@ TEST(CircularBufferIterator, ReverseIteratorWithRotation) {
 // PartialBuffer := Underlying buffer is not completely full.
 // For complexity, we'll make head somewhere after the tail in the underlying
 // buffer (i.e. it wraps around).
-TEST(CircularBufferIterator, ForwardIteratorPartialBuffer) {
+TEST(BoundedFIFOIterator, ForwardIteratorPartialBuffer) {
   // Create a buffer, pop some data, then add back less than what we popped.
   const uint8_t nRemove = TARGET_SIZE * 3 / 4; // Remove roughly 3/4
   const uint8_t nAdd = TARGET_SIZE * 1 / 4; // Add back roughly 1/4
 
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
     createRotatedPartialBuffer(nRemove, nAdd);
 
   // Basic sanity checks.
@@ -629,12 +629,12 @@ TEST(CircularBufferIterator, ForwardIteratorPartialBuffer) {
 // PartialBuffer := Underlying buffer is not completely full.
 // For complexity, we'll make head somewhere after the tail in the underlying
 // buffer (i.e. it wraps around).
-TEST(CircularBufferIterator, ReverseIteratorPartialBuffer) {
+TEST(BoundedFIFOIterator, ReverseIteratorPartialBuffer) {
   // Create a buffer, pop some data, then add back less than what we popped.
   const uint8_t nRemove = TARGET_SIZE * 3 / 4; // Remove roughly 3/4
   const uint8_t nAdd = TARGET_SIZE * 1 / 4; // Add back roughly 1/4
 
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
     createRotatedPartialBuffer(nRemove, nAdd);
 
   // Basic sanity checks.
@@ -645,14 +645,14 @@ TEST(CircularBufferIterator, ReverseIteratorPartialBuffer) {
   reverseIteratorTests(circBuf);
 }
 
-TEST(CircularBufferIterator, AssignmentOperator) {
-  CircularBuffer<uint8_t, TARGET_SIZE> buf1 =
+TEST(BoundedFIFOIterator, AssignmentOperator) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> buf1 =
       createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
-  CircularBuffer<uint8_t, TARGET_SIZE> buf2 =
+  BoundedFIFO<uint8_t, TARGET_SIZE> buf2 =
       createRotatedBuffer<TARGET_SIZE>(5);
 
-  CircularBuffer<uint8_t, TARGET_SIZE>::iterator it1 = buf1.begin();
-  CircularBuffer<uint8_t, TARGET_SIZE>::iterator it2 = buf2.begin();
+  BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it1 = buf1.begin();
+  BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it2 = buf2.begin();
 
   // Sanity test
   ASSERT_EQ(*it1, 1);
@@ -665,10 +665,10 @@ TEST(CircularBufferIterator, AssignmentOperator) {
   ASSERT_EQ(*it2, 1);
 }
 
-TEST(CircularBufferIterator, PlusAssignmentOperator) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+TEST(BoundedFIFOIterator, PlusAssignmentOperator) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createRotatedBuffer<TARGET_SIZE>(5);
-  CircularBuffer<uint8_t, TARGET_SIZE>::iterator it = circBuf.begin();
+  BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it = circBuf.begin();
 
   ASSERT_EQ(*it, 6);
   it += 1;
@@ -687,10 +687,10 @@ TEST(CircularBufferIterator, PlusAssignmentOperator) {
   ASSERT_EQ(*it, circBuf.front());
 }
 
-TEST(CircularBufferIterator, MinusAssignmentOperator) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+TEST(BoundedFIFOIterator, MinusAssignmentOperator) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createRotatedBuffer<TARGET_SIZE>(5);
-  CircularBuffer<uint8_t, TARGET_SIZE>::iterator it = circBuf.end();
+  BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it = circBuf.end();
 
   ASSERT_EQ(it, circBuf.end());
   it -= 1;
@@ -711,14 +711,14 @@ TEST(CircularBufferIterator, MinusAssignmentOperator) {
 
 // The following tests are based on semantis defined in:
 //  - https://en.cppreference.com/w/cpp/named_req/RandomAccessIterator
-TEST(CircularBufferIterator, RandomAccessSemantics) {
-  CircularBuffer<uint8_t, TARGET_SIZE> circBuf =
+TEST(BoundedFIFOIterator, RandomAccessSemantics) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
       createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
 
   // Check addition w/ integers.
-  CircularBuffer<uint8_t, TARGET_SIZE>::iterator it1 = circBuf.begin() + 5;
+  BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it1 = circBuf.begin() + 5;
   ASSERT_EQ(*it1, 6);
-  CircularBuffer<uint8_t, TARGET_SIZE>::iterator it2 = 5 + circBuf.begin();
+  BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it2 = 5 + circBuf.begin();
   ASSERT_EQ(*it2, 6);
 
   ASSERT_EQ(it1 + 1, 1 + it2);
@@ -728,7 +728,7 @@ TEST(CircularBufferIterator, RandomAccessSemantics) {
   ASSERT_EQ(*it1, 6);
   ASSERT_EQ(*it2, 6);
 
-  CircularBuffer<uint8_t, TARGET_SIZE>::iterator it3 = circBuf.end() - 5;
+  BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it3 = circBuf.end() - 5;
   ASSERT_EQ(*it3, 6);
 
   // Reset it1, then test iterator difference operator.
