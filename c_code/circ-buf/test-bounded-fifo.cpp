@@ -111,7 +111,7 @@ BoundedFIFO<uint8_t, TARGET_SIZE> createRotatedPartialBuffer(
 void forwardIteratorTests(BoundedFIFO<uint8_t, TARGET_SIZE>& circBuf) {
   // Forward Iterators: Test postfix ++ operator
   uint8_t val = circBuf.front();
-  for (auto it = circBuf.begin(); it != circBuf.end();) {
+  for (auto it = circBuf.cbegin(); it != circBuf.cend();) {
     ASSERT_EQ(val++, *(it++));
   }
   ASSERT_EQ(val, circBuf.back() + 1);
@@ -119,33 +119,33 @@ void forwardIteratorTests(BoundedFIFO<uint8_t, TARGET_SIZE>& circBuf) {
   // Forward Iterators: Test prefix ++ operator
   // Loop condition avoids dereferencing end().
   val = circBuf.front();
-  for (auto it = circBuf.begin(); *it < circBuf.back();) {
+  for (auto it = circBuf.cbegin(); *it < circBuf.back();) {
     ASSERT_EQ(++val, *(++it));
   }
   ASSERT_EQ(val, circBuf.back());
 
   // Forward Iterators: Test postfix -- operator
   val = circBuf.back();
-  for (auto it = circBuf.end() - 1; it != circBuf.begin();) {
+  for (auto it = circBuf.cend() - 1; it != circBuf.cbegin();) {
     ASSERT_EQ(val--, *(it--));
   }
   ASSERT_EQ(val, circBuf.front());
 
   // Forward Iterators: Test prefix -- operator
   val = circBuf.back() + 1;
-  for (auto it = circBuf.end(); it != circBuf.begin();) {
+  for (auto it = circBuf.cend(); it != circBuf.cbegin();) {
     ASSERT_EQ(--val, *(--it));
   }
   ASSERT_EQ(val, circBuf.front());
 
   // Check basic logic: decrementing "end" is the same as back()
-  auto end = circBuf.end();
+  auto end = circBuf.cend();
   ASSERT_EQ(circBuf.back(), *(--end));
 
   // Check basic logic: increment "end" doesn't change it
-  auto end2 = circBuf.end();
-  ASSERT_EQ(circBuf.end(), ++end2);
-  ASSERT_EQ(circBuf.end(), ++end2); // Test again, for sanity
+  auto end2 = circBuf.cend();
+  ASSERT_EQ(circBuf.cend(), ++end2);
+  ASSERT_EQ(circBuf.cend(), ++end2); // Test again, for sanity
 }
 
 // NOTE: These tests assume that sequential values are stored in the circular
@@ -154,7 +154,7 @@ void forwardIteratorTests(BoundedFIFO<uint8_t, TARGET_SIZE>& circBuf) {
 void reverseIteratorTests(BoundedFIFO<uint8_t, TARGET_SIZE>& circBuf) {
   // Reverse Iterators: Test postfix ++ operator
   uint8_t val = circBuf.back();
-  for (auto it = circBuf.rbegin(); it != circBuf.rend();) {
+  for (auto it = circBuf.crbegin(); it != circBuf.crend();) {
     ASSERT_EQ(val--, *(it++));
   }
   ASSERT_EQ(val, circBuf.front() - 1);
@@ -162,33 +162,33 @@ void reverseIteratorTests(BoundedFIFO<uint8_t, TARGET_SIZE>& circBuf) {
   // Reverse Iterators: Test prefix ++ operator
   // Loop condition avoids dereferencing rend().
   val = circBuf.back();
-  for (auto it = circBuf.rbegin(); *it > circBuf.front();) {
+  for (auto it = circBuf.crbegin(); *it > circBuf.front();) {
     ASSERT_EQ(--val, *(++it));
   }
   ASSERT_EQ(val, circBuf.front());
 
   // Reverse Iterators: Test postfix -- operator
   val = circBuf.front();
-  for (auto it = circBuf.rend() - 1; it != circBuf.rbegin();) {
+  for (auto it = circBuf.crend() - 1; it != circBuf.crbegin();) {
     ASSERT_EQ(val++, *(it--));
   }
   ASSERT_EQ(val, circBuf.back());
 
   // Reverse Iterators: Test prefix -- operator
   val = circBuf.front() - 1;
-  for (auto it = circBuf.rend(); it != circBuf.rbegin();) {
+  for (auto it = circBuf.crend(); it != circBuf.crbegin();) {
     ASSERT_EQ(++val, *(--it));
   }
   ASSERT_EQ(val, circBuf.back());
 
   // Check basic logic: decrementing "rend" is the same as front()
-  auto rend = circBuf.rend();
+  auto rend = circBuf.crend();
   ASSERT_EQ(circBuf.front(), *(--rend));
 
   // Check basic logic: increment "rend" doesn't change it
-  auto rend2 = circBuf.rend();
-  ASSERT_EQ(circBuf.rend(), ++rend2);
-  ASSERT_EQ(circBuf.rend(), ++rend2); // Test again, for sanity
+  auto rend2 = circBuf.crend();
+  ASSERT_EQ(circBuf.crend(), ++rend2);
+  ASSERT_EQ(circBuf.crend(), ++rend2); // Test again, for sanity
 }
 
 

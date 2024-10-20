@@ -65,13 +65,17 @@ class BoundedFIFO : protected std::array<T, N> {
 
     constexpr iterator begin() noexcept;
     constexpr const_iterator begin() const noexcept;
+    constexpr const_iterator cbegin() const noexcept;
     constexpr iterator end() noexcept;
     constexpr const_iterator end() const noexcept;
+    constexpr const_iterator cend() const noexcept;
 
     constexpr reverse_iterator rbegin() noexcept;
     constexpr const_reverse_iterator rbegin() const noexcept;
+    constexpr const_reverse_iterator crbegin() const noexcept;
     constexpr reverse_iterator rend() noexcept;
     constexpr const_reverse_iterator rend() const noexcept;
+    constexpr const_reverse_iterator crend() const noexcept;
 
     constexpr bool empty() const noexcept;
     constexpr uint64_t size() const noexcept;
@@ -484,6 +488,12 @@ BoundedFIFO<T, N>::begin() const noexcept {
 }
 
 template <typename T, uint64_t N>
+constexpr typename BoundedFIFO<T, N>::const_iterator
+BoundedFIFO<T, N>::cbegin() const noexcept {
+  return begin();
+}
+
+template <typename T, uint64_t N>
 constexpr typename BoundedFIFO<T, N>::iterator
 BoundedFIFO<T, N>::end() noexcept {
   return iterator(END, this);
@@ -498,16 +508,28 @@ BoundedFIFO<T, N>::end() const noexcept {
 }
 
 template <typename T, uint64_t N>
+constexpr typename BoundedFIFO<T, N>::const_iterator
+BoundedFIFO<T, N>::cend() const noexcept {
+  return end();
+}
+
+template <typename T, uint64_t N>
 constexpr typename BoundedFIFO<T, N>::reverse_iterator
 BoundedFIFO<T, N>::rbegin() noexcept {
   return reverse_iterator(end());
 }
 
-//template <typename T, uint64_t N>
-//constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
-//BoundedFIFO<T, N>::rbegin() const noexcept {
-//  return const_reverse_iterator(end());
-//}
+template <typename T, uint64_t N>
+constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
+BoundedFIFO<T, N>::rbegin() const noexcept {
+  return const_reverse_iterator(end());
+}
+
+template <typename T, uint64_t N>
+constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
+BoundedFIFO<T, N>::crbegin() const noexcept {
+  return rbegin();
+}
 
 template <typename T, uint64_t N>
 constexpr typename BoundedFIFO<T, N>::reverse_iterator
@@ -515,11 +537,17 @@ BoundedFIFO<T, N>::rend() noexcept {
   return reverse_iterator(begin());
 }
 
-//template <typename T, uint64_t N>
-//constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
-//BoundedFIFO<T, N>::rend() const noexcept {
-//  return const_reverse_iterator(begin());
-//}
+template <typename T, uint64_t N>
+constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
+BoundedFIFO<T, N>::rend() const noexcept {
+  return const_reverse_iterator(begin());
+}
+
+template <typename T, uint64_t N>
+constexpr typename BoundedFIFO<T, N>::const_reverse_iterator
+BoundedFIFO<T, N>::crend() const noexcept {
+  return rend();
+}
 
 template <typename T, uint64_t N>
 constexpr bool BoundedFIFO<T, N>::empty() const noexcept {
