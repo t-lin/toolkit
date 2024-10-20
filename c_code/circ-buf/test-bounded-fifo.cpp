@@ -12,27 +12,11 @@
 #define TARGET_SIZE (10U)
 
 // Define complex type for testing
-class TestObject {
-  public:
-    char a = 'A';
-    double b = 3.14;
-    uint16_t c = 42;
-
-    friend bool operator==(const TestObject& lhs, const TestObject& rhs) {
-      return (lhs.a == rhs.a) && (lhs.b == rhs.b) && (lhs.c == rhs.c);
-    }
+struct TestObject {
+  char a = 'A';
+  double b = 3.14;
+  uint16_t c = 42;
 };
-
-void myTest() {
-  TestObject asdf1;
-  TestObject asdf2;
-
-  if (asdf1 == asdf2) {
-    printf("hello world!\n");
-  }
-
-  return;
-}
 
 /************************
  * Generic test helpers
@@ -767,6 +751,10 @@ TEST(BoundedFIFOIterator, RandomAccessSemantics) {
   ASSERT_TRUE(it1 >= it2);
   ASSERT_TRUE(it2 <= it1);
   ASSERT_TRUE(it2 >= it1);
+}
+
+TEST(BoundedFIFOIterator, tlintest) {
+  // TODO: Address gaps in code coverage
 }
 
 int main(int argc, char** argv) {
