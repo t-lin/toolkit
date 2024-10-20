@@ -345,36 +345,50 @@ class BoundedFIFOIterator {
      * Outside-class operator definitions.
      **************************************/
 
-    // Equality operator
+    // Equality operator.
+    // We throw in the event that lhs and rhs refer to different buffer
+    // instances. This is to avoid undefined behaviour. We could return
+    // false, but that misleadingly implies that (lhs != rhs) is true.
     friend bool operator==(const BoundedFIFOIterator& lhs,
                            const BoundedFIFOIterator& rhs) {
       if (lhs.pCircBuf_ != rhs.pCircBuf_) {
-        return false;
+        throw std::invalid_argument(
+            "lhs and rhs refer to different containers\n");
       }
 
       return lhs.arrCurrIdx_ == rhs.arrCurrIdx_;
     }
 
-    // Inequality operator
+    // Inequality operator.
     friend bool operator!=(const BoundedFIFOIterator& lhs,
                            const BoundedFIFOIterator& rhs) {
       return !operator==(lhs, rhs);
     }
 
+    // Less-than operator.
+    // We throw in the event that lhs and rhs refer to different buffer
+    // instances. This is to avoid undefined behaviour. We could return
+    // false, but that misleadingly implies that (lhs >= rhs) is true.
     friend bool operator<(const BoundedFIFOIterator& lhs,
                           const BoundedFIFOIterator& rhs) {
       if (lhs.pCircBuf_ != rhs.pCircBuf_) {
-        return false;
+        throw std::invalid_argument(
+            "lhs and rhs refer to different containers\n");
       }
 
       // Compare each side's distance from head.
       return lhs.distanceFromHead() < rhs.distanceFromHead();
     }
 
+    // Greater-than operator.
+    // We throw in the event that lhs and rhs refer to different buffer
+    // instances. This is to avoid undefined behaviour. We could return
+    // false, but that misleadingly implies that (lhs <= rhs) is true.
     friend bool operator>(const BoundedFIFOIterator& lhs,
                           const BoundedFIFOIterator& rhs) {
       if (lhs.pCircBuf_ != rhs.pCircBuf_) {
-        return false;
+        throw std::invalid_argument(
+            "lhs and rhs refer to different containers\n");
       }
 
       // Compare each side's distance from head.

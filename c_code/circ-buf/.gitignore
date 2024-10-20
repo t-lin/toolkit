@@ -1,4 +1,4 @@
-test-circ-buf
+test-bounded-fifo
 *.gcda
 *.gcno
 

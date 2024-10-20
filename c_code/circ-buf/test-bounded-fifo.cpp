@@ -12,27 +12,11 @@
 #define TARGET_SIZE (10U)
 
 // Define complex type for testing
-class TestObject {
-  public:
-    char a = 'A';
-    double b = 3.14;
-    uint16_t c = 42;
-
-    friend bool operator==(const TestObject& lhs, const TestObject& rhs) {
-      return (lhs.a == rhs.a) && (lhs.b == rhs.b) && (lhs.c == rhs.c);
-    }
+struct TestObject {
+  char a = 'A';
+  double b = 3.14;
+  uint16_t c = 42;
 };
-
-void myTest() {
-  TestObject asdf1;
-  TestObject asdf2;
-
-  if (asdf1 == asdf2) {
-    printf("hello world!\n");
-  }
-
-  return;
-}
 
 /************************
  * Generic test helpers
@@ -398,7 +382,6 @@ TEST(BoundedFIFO, MixedFunctionality) {
   EXPECT_EQ(buf.front(), 3);
 }
 
-// NOTE: This implicitly tests iterator equality/inequality
 TEST(BoundedFIFO, EqualityInequalityOperator) {
   BoundedFIFO<uint8_t, 10> buf1;
   BoundedFIFO<uint8_t, 10> buf2;
@@ -671,11 +654,17 @@ TEST(BoundedFIFOIterator, PlusAssignmentOperator) {
   BoundedFIFO<uint8_t, TARGET_SIZE>::iterator it = circBuf.begin();
 
   ASSERT_EQ(*it, 6);
+  it += (TARGET_SIZE + 1); // Go beyond END, should be END
+  ASSERT_EQ(it, circBuf.end());
+
+  it = circBuf.begin();
   it += 1;
   ASSERT_EQ(*it, 7);
   it += 5;
   ASSERT_EQ(*it, 12);
   it += TARGET_SIZE; // Go beyond END; should be END
+  ASSERT_EQ(it, circBuf.end());
+  it += 1; // Keep adding, should stay at END
   ASSERT_EQ(it, circBuf.end());
 
   // Test w/ negative numbers
@@ -697,6 +686,8 @@ TEST(BoundedFIFOIterator, MinusAssignmentOperator) {
   ASSERT_EQ(*it, 15);
   it -= 5;
   ASSERT_EQ(*it, 10);
+  it -= 1; // Test again (curr index > head index)
+  ASSERT_EQ(*it, 9);
   it -= TARGET_SIZE; // Go beyond head; should stay at head
   ASSERT_EQ(*it, circBuf.front());
 
@@ -707,6 +698,30 @@ TEST(BoundedFIFOIterator, MinusAssignmentOperator) {
   ASSERT_EQ(*it, 13);
   it -= -static_cast<int64_t>(TARGET_SIZE); // Go beyond END; should stay at END
   ASSERT_EQ(it, circBuf.end());
+}
+
+TEST(BoundedFIFOIterator, EqualityInequalityOperator) {
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf =
+      createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
+  BoundedFIFO<uint8_t, TARGET_SIZE> circBuf2 =
+      createBufferNoRotatation<TARGET_SIZE>(TARGET_SIZE);
+
+  auto it = circBuf.begin();
+  auto it2 = circBuf.begin();
+  ASSERT_EQ(it, it2);
+
+  // Test comparisons w/ different buffer instances.
+  it2 = circBuf2.begin();
+  ASSERT_EQ(*it, *it2); // Underlying data should be same
+  ASSERT_THROW((void)(it == it2), std::invalid_argument);
+
+  it2++;
+  ASSERT_LT(*it, *it2);
+  ASSERT_THROW((void)(it < it2), std::invalid_argument);
+
+  it += 2;
+  ASSERT_GT(*it, *it2);
+  ASSERT_THROW((void)(it > it2), std::invalid_argument);
 }
 
 // The following tests are based on semantis defined in:
