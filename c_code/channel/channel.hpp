@@ -79,9 +79,9 @@ class Channel {
      */
     bool Put(const T& item, bool wait = true);
 
-    bool Put(const T* const items, const size_t n, bool wait = true);
+    size_t Put(const T* const items, const size_t n, bool wait = true);
 
-    bool Put(const std::vector<T>& items, bool wait = true);
+    size_t Put(const std::vector<T>& items, bool wait = true);
 
     /* Reads an item from the channel and stores it into 'item'.
      * If the channel is empty and 'wait' is true, block until an item exists.
@@ -207,22 +207,27 @@ bool Channel<T>::Put(const T& item, bool wait) {
 }
 
 template <typename T>
-bool Channel<T>::Put(const T* const items, const size_t n, bool wait) {
+size_t Channel<T>::Put(const T* const items, const size_t n, bool wait) {
   std::unique_lock<std::mutex> lock(bufMtx_);
 
   if ( !isWritable_(lock, wait) ) {
-    return false;
+    return 0;
   }
 
-  buf_.insert(buf_.end(), items, items + n);
+  // See if there're enough free slots for this entire block.
+  // If there aren't enough slots, just add what's possible.
+  const size_t availSlots = maxSize_ - buf_.size();
+  const size_t numToPut = (n > availSlots) ? availSlots : n;
+
+  buf_.insert(buf_.end(), items, items + numToPut);
   lock.unlock();
   newData_.notify_one();
 
-  return true;
+  return numToPut;
 }
 
 template <typename T>
-bool Channel<T>::Put(const std::vector<T>& items, bool wait) {
+size_t Channel<T>::Put(const std::vector<T>& items, bool wait) {
   return this->Put(items.data(), items.size(), wait);
 }
 

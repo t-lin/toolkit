@@ -190,6 +190,33 @@ bool TestChanSize100(uint64_t numItems,
   return true;
 }
 
+TEST(ChannelTest, Put) {
+  Channel<uint8_t> byteChan(10);
+
+  for (uint64_t i = 0; i < 10; i++) {
+    ASSERT_TRUE( byteChan.Put((uint8_t)(i % 255)) );
+  }
+
+  // Try Put'ing one more time w/ no waiting; should return false
+  ASSERT_FALSE( byteChan.Put(42, false) );
+
+  // Consume one to make room to Put more
+  uint8_t dummy = 0;
+  ASSERT_TRUE( byteChan.Get(dummy) );
+
+  // Sanity check
+  const uint64_t spaceAvail = byteChan.Cap() - byteChan.Len();
+  ASSERT_TRUE(spaceAvail > 0);
+
+  // Try putting more than what's available.
+  std::vector<uint8_t> newData;
+  for (uint64_t i = 0; i < (spaceAvail * 2); i++) {
+    newData.push_back((uint8_t)(i % 255));
+  }
+
+  ASSERT_EQ(byteChan.Put(newData), spaceAvail);
+}
+
 TEST(ChannelTest, ChanSize1) {
   // Normal operation
   const uint64_t numItems = 2000;
