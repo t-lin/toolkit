@@ -1,5 +1,5 @@
 LDFLAGS += -lgtest -lpthread
-CXXFLAGS += -std=gnu++17 -O3 -Wall
+CXXFLAGS += -std=gnu++17 -O3 -Wall -Werror
 CXXFLAGS += -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wimplicit-fallthrough -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast
 
 BINNAME = test_channel

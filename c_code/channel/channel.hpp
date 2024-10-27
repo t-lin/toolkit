@@ -13,13 +13,21 @@
 template <typename T>
 class Channel {
   private:
+    // Arbitrarily decided default max value; constructor may override.
+    static constexpr size_t DEFAULT_MAX = (1 << 16) - 1; // 65535
+
+    /* We use size_t here to force this value to be system-dependent.
+     *  - i.e. We refuse to support values greater than 2^32 if the system
+     *         is only 32-bits.
+     */
+    size_t maxSize_ = DEFAULT_MAX;
+
     /* NOTE: Using vector to guarantee contiguous memory for data.
      *       While the potential downside is the internal shifting of the
      *       buffer when reading/erasing from the front, the contiguous
      *       nature of vectors takes advantage of cache line locality,
      *       minimizing the shifting overhead as reads/erases get larger.
      */
-    size_t maxSize_ = 65535; // Arbitrarily decided
     std::vector<T> buf_;
     std::mutex bufMtx_;
     std::condition_variable newData_;
@@ -37,7 +45,7 @@ class Channel {
 
     // Predicates for wait conditions
     bool exitGetWait_();
-    bool notFull_ ();
+    bool notFull_();
 
   public:
     Channel();

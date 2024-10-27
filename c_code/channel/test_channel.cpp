@@ -15,8 +15,8 @@
 using std::vector;
 using std::unique_ptr;
 
-void producer(int n, Channel<uint8_t>& chan, bool close = true) {
-  for (int i = 0; i < n; i++) {
+void producer(uint64_t n, Channel<uint8_t>& chan, bool close = true) {
+  for (uint64_t i = 0; i < n; i++) {
     chan.Put((uint8_t)(i % 255));
   }
 
@@ -27,14 +27,13 @@ void producer(int n, Channel<uint8_t>& chan, bool close = true) {
   return;
 }
 
-bool TestChanSize1() {
-  int numItems = 2000;
+bool TestChanSize1(uint64_t numItems) {
   Channel<uint8_t> byteChan(1);
 
   std::thread prod(producer, numItems, std::ref(byteChan), true);
 
   uint8_t val = 0;
-  for (int i = 0; i < numItems; i++) {
+  for (uint64_t i = 0; i < numItems; i++) {
     if (!byteChan.Get(val)) {
       fprintf(stderr, "In %s, Get() == false\n", __FUNCTION__);
       prod.join();
@@ -141,10 +140,11 @@ void producerArr(size_t n, size_t nBatch, Channel<uint8_t>& chan, bool close = t
 //  - Only affects producer side (currently no Channel::Get() w/ arrays)
 // If closeMidway == true, consumer (this func) attempts to Get() more items than produced
 // If prodClose == true, producer closes after it finishes; else it doesn't
-bool TestChanSize100(bool useVec = true,
+bool TestChanSize100(uint64_t numItems,
+                     uint64_t batchSize,
+                      bool useVec = true,
                       bool closeMidway = false,
                       bool prodClose = true) {
-  size_t numItems = 1000, batchSize = 50;
   Channel<uint8_t> byteChan(100);
 
   std::thread prod;
@@ -192,7 +192,8 @@ bool TestChanSize100(bool useVec = true,
 
 TEST(ChannelTest, ChanSize1) {
   // Normal operation
-  ASSERT_DURATION_LE(1, EXPECT_TRUE(TestChanSize1()));
+  const uint64_t numItems = 2000;
+  ASSERT_DURATION_LE(1, EXPECT_TRUE(TestChanSize1(numItems)));
 
   // Producer closes, consumer attempts Get()
   ASSERT_DURATION_LE(1, EXPECT_FALSE(TestChanSize1CloseMidway()));
@@ -204,27 +205,90 @@ TEST(ChannelTest, ChanSize1) {
 }
 
 TEST(ChannelTest, ChanSize100) {
+  const uint64_t numItems = 2000;
+  const uint64_t batchSize = 50;
+
+  bool useVectorAPI = true; // Uses the vector Get() APIs, rather than arrays.
+  bool closeMidway = false; // Close producer channel mid-way.
+  bool closeProdEnd = true; // Close producer when finished.
+
   // Normal operation using vectors
-  ASSERT_DURATION_LE(1, EXPECT_TRUE(TestChanSize100(true, false, true)));
+  ASSERT_DURATION_LE(1,
+      EXPECT_TRUE(
+        TestChanSize100(
+          numItems, batchSize, useVectorAPI, closeMidway, closeProdEnd)));
 
   // Normal operation using array
-  ASSERT_DURATION_LE(1, EXPECT_TRUE(TestChanSize100(false, false, true)));
+  useVectorAPI = false; closeMidway = false; closeProdEnd = true;
+  ASSERT_DURATION_LE(1,
+      EXPECT_TRUE(
+        TestChanSize100(
+          numItems, batchSize, useVectorAPI, closeMidway, closeProdEnd)));
 
   // Producer closes, consumer attempts Get(), using vectors
-  ASSERT_DURATION_LE(1, EXPECT_FALSE(TestChanSize100(true, true, true)));
+  useVectorAPI = true; closeMidway = true; closeProdEnd = true;
+  ASSERT_DURATION_LE(1,
+      EXPECT_FALSE(
+        TestChanSize100(
+          numItems, batchSize, useVectorAPI, closeMidway, closeProdEnd)));
 
   // Producer closes, consumer attempts Get(), using arrays
-  ASSERT_DURATION_LE(1, EXPECT_FALSE(TestChanSize100(false, true, true)));
+  useVectorAPI = false; closeMidway = true; closeProdEnd = true;
+  ASSERT_DURATION_LE(1,
+      EXPECT_FALSE(
+        TestChanSize100(
+          numItems, batchSize, useVectorAPI, closeMidway, closeProdEnd)));
 
   // Producer doesn't close, consumer attempts Get(), using vectors
+  // NOTE: Due to underlying implementation of EXPECT_FATAL_FAILURE() macro,
+  //       we can't reference any local variables, so hard-code params.
+  //useVectorAPI = true; closeMidway = true; closeProdEnd = false;
   EXPECT_FATAL_FAILURE(
-      ASSERT_DURATION_LE(1, EXPECT_TRUE(TestChanSize100(true, true, false))),
+      ASSERT_DURATION_LE(1,
+        EXPECT_TRUE(
+          TestChanSize100(2000, 50, true, true, false))),
       "timed out");
 
   // Producer doesn't close, consumer attempts Get(), using vectors
+  // NOTE: Due to underlying implementation of EXPECT_FATAL_FAILURE() macro,
+  //       we can't reference any local variables, so hard-code params.
+  //useVectorAPI = false; closeMidway = true; closeProdEnd = false;
   EXPECT_FATAL_FAILURE(
-      ASSERT_DURATION_LE(1, EXPECT_TRUE(TestChanSize100(false, true, false))),
+      ASSERT_DURATION_LE(1,
+        EXPECT_TRUE(
+          TestChanSize100(2000, 50, false, true, false))),
       "timed out");
+}
+
+// Yes, could use the benchmark lib... but we want to combine these different
+// tests together for simplicity. May reconsider in the future.
+TEST(ChannelBenchmark, ChanSize1_NumItems100000) {
+  const uint64_t numItems = 100000;
+  ASSERT_TRUE(TestChanSize1(numItems));
+}
+
+TEST(ChannelBenchmark, ChanSize100_NumItems100000_Batch1) {
+  const uint64_t numItems = 100000;
+  const uint64_t batchSize = 1;
+  bool useVectorAPI = true;
+  bool closeMidway = false;
+  bool closeProdEnd = true;
+
+  ASSERT_TRUE(
+      TestChanSize100(
+        numItems, batchSize, useVectorAPI, closeMidway, closeProdEnd));
+}
+
+TEST(ChannelBenchmark, ChanSize100_NumItems100000_Batch100) {
+  const uint64_t numItems = 100000;
+  const uint64_t batchSize = 101;
+  bool useVectorAPI = true;
+  bool closeMidway = false;
+  bool closeProdEnd = true;
+
+  ASSERT_TRUE(
+      TestChanSize100(
+        numItems, batchSize, useVectorAPI, closeMidway, closeProdEnd));
 }
 
 int main(int argc, char** argv) {
